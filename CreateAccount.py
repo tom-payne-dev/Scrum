@@ -1,11 +1,6 @@
-import sqlite3
 import customtkinter as tk
-import time
 import re
 import DatabaseManager
-
-database = sqlite3.connect("usersdb.db") # connects to database file
-cursor = database.cursor()
 
 root = tk.CTk() # root of all GUI
 root.geometry("1280x720")

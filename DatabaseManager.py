@@ -26,11 +26,12 @@ def AddUser(email, username, password, teamID, role, position):
 def CheckPassword(username, userPassword):
     cursor.execute(f"SELECT hashedPassword FROM Users WHERE username = '{username}'") # uses SQL to select the password of the user
     hashedPassword = cursor.fetchone()[0] # fetches the password from the cursor select
-    hashedPassword = hashedPassword.encode('utf-8') # Converts the string into a byte array
 
+    hashedPassword = hashedPassword.encode('utf-8') # Converts the string into a byte array
     userBytes = userPassword.encode('utf-8') # Converts the string into a byte array
+
     result = bcrypt.checkpw(userBytes, hashedPassword)
-    print(result)
+    return result
 
 def FetchAttributeValues(attribute, table):
     cursor.execute(f"SELECT {attribute} from {table}") # uses SQL to select the attribute values for all players
