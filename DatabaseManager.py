@@ -44,6 +44,12 @@ def ValueExists(value, attribute, table):
             return True
     return False
 
+def getUserRecord(username):
+    cursor.execute(f"SELECT * from Users where username = '{username}'") # uses SQL to select the attribute values for all players
+    return list(cursor.fetchall()[0]) # returns an array of all the values from the database
+
+
+# print(getUserRecord("tom"))
 # print(ValueExists("tom", "username", "Users"))
 
 
