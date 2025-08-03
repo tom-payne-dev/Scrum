@@ -1,7 +1,7 @@
 import sqlite3
 
-database = sqlite3.connect('usersdb.db') # This creates the database file, usersdb.db in the currect directories and creates a database object so that we can excecute SQL on the statement
-cursor = database.cursor()
+database = sqlite3.connect('usersdb.db') # This creates the database file, usersdb.db in the currect directories
+cursor = database.cursor() # This opens the database so that we can read/write
 
 cursor.execute("""
                CREATE TABLE Users(
