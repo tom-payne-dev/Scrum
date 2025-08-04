@@ -48,9 +48,46 @@ def getUserRecord(username):
     cursor.execute(f"SELECT * from Users where username = '{username}'") # uses SQL to select the attribute values for all players
     return list(cursor.fetchall()[0]) # returns an array of all the values from the database
 
+def addFixture(homeTeam, visitingTeam, date, meetTime, startTime, finishTime, details, longitude, latitude, scoreHome='0', scoreAway='0'):
+    fixtureID = "1" # generate new fixtureID OR ERROR!!!!!
+    
+    cursor.execute(f"""
+        INSERT INTO Fixture(
+            homeTeam, visitingTeam, date, meetTime, startTime, finishTime,
+            details, longitude, latitude, scoreHome, scoreAway, fixtureID
+        ) 
+        VALUES (
+            '{homeTeam}', '{visitingTeam}', '{date}', '{meetTime}', '{startTime}', '{finishTime}',
+            '{details}', {longitude}, {latitude}, {scoreHome}, {scoreAway}, '{fixtureID}'
+        )
+    """)
+    database.commit()
 
+    print(
+        f"Created fixture:\n"
+        f"Home: {homeTeam}, Away: {visitingTeam}\n"
+        f"Date: {date}, Meet: {meetTime}, Start: {startTime}, Finish: {finishTime}\n"
+        f"Location: ({latitude}, {longitude})\n"
+        f"Details: {details}\n"
+        f"Score: {scoreHome} - {scoreAway}, ID: {fixtureID}"
+    )
+
+def getTeamsAvailable(date):
+    cursor.execute(f"""
+        SELECT teamName from Teams WHERE teamID NOT IN(
+            SELECT homeTeam FROM Fixture WHERE date = "{date}"
+            UNION
+            SELECT visitingTeam FROM Fixture WHERE date = "{date}"
+        )
+    """) # Selects all teams that do not have a fixture on the passed date
+    return ([value[0] for value in cursor.fetchall()])
+
+
+# print(getTeamsAvailable("19/12/2024"))
+# print(getTeamsAvailable("20/12/2024"))
 # print(getUserRecord("tom"))
 # print(ValueExists("tom", "username", "Users"))
+# addFixture("ENG001", "FRA001", "20/12/2024", "13:00", "14:00", "16:00", "Bring Gumshield", "-0.3419", "51.455")
 
 
 #CheckPassword("tom", "password12!$")
