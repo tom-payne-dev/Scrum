@@ -74,7 +74,7 @@ def addFixture(homeTeam, visitingTeam, date, meetTime, startTime, finishTime, de
 
 def getTeamsAvailable(date):
     cursor.execute(f"""
-        SELECT teamName from Teams WHERE teamID NOT IN(
+        SELECT teamID from Teams WHERE teamID NOT IN(
             SELECT homeTeam FROM Fixture WHERE date = "{date}"
             UNION
             SELECT visitingTeam FROM Fixture WHERE date = "{date}"
@@ -82,7 +82,14 @@ def getTeamsAvailable(date):
     """) # Selects all teams that do not have a fixture on the passed date
     return ([value[0] for value in cursor.fetchall()])
 
+def getLatLong(teamID):
+    cursor.execute(f"""
+        SELECT latitude, longitude FROM Teams WHERE teamID = "{teamID}"
+    """)
+    return cursor.fetchone()
 
+
+# print(getLatLong("ENG001"))
 # print(getTeamsAvailable("19/12/2024"))
 # print(getTeamsAvailable("20/12/2024"))
 # print(getUserRecord("tom"))

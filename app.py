@@ -28,22 +28,49 @@ class MainTabView(tk.CTkTabview):
         self.button.grid(row=1, column=0, padx=10, pady=10)
 
 class FixtureWindow(tk.CTkToplevel):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, user, *args, **kwargs):
         super().__init__(*args, **kwargs) # initialises the parent class
+        self.user = user
+
         self.geometry("400x300") # Defines window geometry
 
         self.header = tk.CTkLabel(self, text="Matchmake Fixture", font=('Helvetica', 32, 'bold')) 
         self.header.grid(row=0, column=0, padx=10, pady=10) # Adds the heading for the window
         
         self.datePicker = CTkDatePicker(self)
+        self.datePicker.set_date_format(r"%d/%m/%Y")
         self.datePicker.grid(pady=10) # Adds a Date picker UI widget
-        self.submitDate = tk.CTkButton(self, text="Submit", command=self.getDate)
+        self.submitDate = tk.CTkButton(self, text="Submit", command=lambda: self.Matchmake(self.datePicker.get_date()))
         self.submitDate.grid(pady=10) # Adds a submit button, resulting in the getDate procedure
     
     def getDate(self):
         date = self.datePicker.get_date() # Gets the date from the date picker
         print(date)
         return date
+    
+    def Matchmake(self, date):
+        homeTeam=self.user.teamID
+        availableTeams = DatabaseManager.getTeamsAvailable(date)
+
+        distances = {
+            #Team : Distance from Home
+        }
+        for awayTeam in availableTeams:
+            latlong = DatabaseManager.getLatLong(awayTeam)
+            distance = self.calculateDistance(float(latlong[0]), float(latlong[1]))
+            distances[awayTeam] = distance
+        
+        closestTeam = availableTeams[0]
+        for awayTeam in distances:
+            if distances[awayTeam] < distances[closestTeam]:
+                closestTeam = awayTeam
+        print(closestTeam)
+
+
+    def calculateDistance(self, lat, long):
+        return lat
+        
+
 
 
 class App(tk.CTk): # inherits the CTk class
@@ -57,7 +84,7 @@ class App(tk.CTk): # inherits the CTk class
     
     def OpenFixtureCreator(self):
         if self.fixtureWindow is None or not self.fixtureWindow.winfo_exists(): # Check for if the window is not open
-            self.fixtureWindow = FixtureWindow() # instantiates the window
+            self.fixtureWindow = FixtureWindow(self.user) # instantiates the window
             print("Opening New Fixture Window...")
         else:
             self.fixtureWindow.focus() # focuses the window
