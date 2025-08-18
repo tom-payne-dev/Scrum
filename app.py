@@ -2,6 +2,7 @@ import customtkinter as tk
 from CTkDatePicker import CTkDatePicker
 import DatabaseManager
 import datetime
+import math
 
 class User:
     def __init__(self, username):
@@ -56,8 +57,8 @@ class FixtureWindow(tk.CTkToplevel):
             #Team : Distance from Home
         }
         for awayTeam in availableTeams:
-            latlong = DatabaseManager.getLatLong(awayTeam)
-            distance = self.calculateDistance(float(latlong[0]), float(latlong[1]))
+            awayLatLong = DatabaseManager.getLatLong(awayTeam)
+            distance = self.calculateDistance(awayLatLong) # finds distance between clubs
             distances[awayTeam] = distance
         
         closestTeam = availableTeams[0]
@@ -67,8 +68,29 @@ class FixtureWindow(tk.CTkToplevel):
         print(closestTeam)
 
 
-    def calculateDistance(self, lat, long):
-        return lat
+    def calculateDistance(self, awayLatLong):
+        homeLatLong = DatabaseManager.getLatLong(self.user.teamID) # Retrieve coordinates of user team
+
+        # print(homeLatLong)
+        # print(awayLatLong)
+        homeLatLong = tuple(map(math.radians, homeLatLong))
+        awayLatLong = tuple(map(math.radians, awayLatLong)) # Convert coordinate tuple to radians
+        # print(homeLatLong)
+        # print(awayLatLong)
+
+
+        # Haversine Formula
+        R = 6371000
+        deltaCoords = (awayLatLong[0]-homeLatLong[0], awayLatLong[1]-homeLatLong[1])
+        
+        a = (math.sin(deltaCoords[0]/2) * math.sin(deltaCoords[0]/2) +
+            math.cos(homeLatLong[0]) * math.cos(awayLatLong[0]) *
+            math.sin(deltaCoords[1]/2) * math.sin(deltaCoords[1])/2) # Square of half the chord length between points
+        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a)) # Angular distance in radians
+        d = R * c # Calculates distance in kilometres
+        print(d/1000, "KM")
+
+        return d
         
 
 
