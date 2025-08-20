@@ -88,6 +88,12 @@ def getLatLong(teamID):
     """)
     return cursor.fetchone()
 
+def fetchTeamName(teamID):
+    cursor.execute(f"""
+        SELECT teamName FROM Teams WHERE teamID = "{teamID}"
+    """)
+    return cursor.fetchone()
+
 
 # print(getLatLong("ENG001"))
 # print(getTeamsAvailable("19/12/2024"))

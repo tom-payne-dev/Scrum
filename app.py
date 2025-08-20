@@ -43,29 +43,41 @@ class FixtureWindow(tk.CTkToplevel):
         self.datePicker.grid(pady=10) # Adds a Date picker UI widget
         self.submitDate = tk.CTkButton(self, text="Submit", command=lambda: self.Matchmake(self.datePicker.get_date()))
         self.submitDate.grid(pady=10) # Adds a submit button, resulting in the getDate procedure
+
+        self.closestTeamLabel = tk.CTkLabel(self, text="")
+        self.closestTeamLabel.grid()
+        self.submitFixtureButton = tk.CTkButton(self, state="disabled", text="Create Fixture")
+        self.submitFixtureButton.grid(pady=10)
+    
     
     def getDate(self):
         date = self.datePicker.get_date() # Gets the date from the date picker
-        print(date)
+        # print(date)
         return date
     
     def Matchmake(self, date):
-        homeTeam=self.user.teamID
-        availableTeams = DatabaseManager.getTeamsAvailable(date)
+        homeTeam = self.user.teamID
+        availableTeams = DatabaseManager.getTeamsAvailable(date) # Uses the getTeamsAvailable algorithm to retrieve teams on date
+        if homeTeam in availableTeams:
+            availableTeams.remove(homeTeam)
 
         distances = {
             #Team : Distance from Home
         }
         for awayTeam in availableTeams:
-            awayLatLong = DatabaseManager.getLatLong(awayTeam)
-            distance = self.calculateDistance(awayLatLong) # finds distance between clubs
-            distances[awayTeam] = distance
-        
-        closestTeam = availableTeams[0]
-        for awayTeam in distances:
+            awayLatLong = DatabaseManager.getLatLong(awayTeam) # Gets the coordinates of the away team
+            distance = self.calculateDistance(awayLatLong) # Finds distance between clubs
+            distances[awayTeam] = distance # Creates a Team : Distance pair in the distances dictionary
+
+        closestTeam = availableTeams[0] # Basic value
+        for awayTeam in distances: # Loops through all teams
             if distances[awayTeam] < distances[closestTeam]:
-                closestTeam = awayTeam
-        print(closestTeam)
+                closestTeam = awayTeam # If the team is closer than the stored closest team, then it becomes the closest team
+        print("Teams:", distances)
+        print("Closest Team:", closestTeam)
+
+        self.closestTeamLabel.configure(text=("Closest Team Available: " + DatabaseManager.fetchTeamName(closestTeam)[0]))
+        self.submitFixtureButton.configure(state="normal")
 
 
     def calculateDistance(self, awayLatLong):
@@ -88,9 +100,10 @@ class FixtureWindow(tk.CTkToplevel):
             math.sin(deltaCoords[1]/2) * math.sin(deltaCoords[1])/2) # Square of half the chord length between points
         c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a)) # Angular distance in radians
         d = R * c # Calculates distance in kilometres
-        print(d/1000, "KM")
+        # print(d/1000, "KM")
 
         return d
+
         
 
 
