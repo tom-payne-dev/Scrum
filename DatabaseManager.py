@@ -49,16 +49,14 @@ def getUserRecord(username):
     return list(cursor.fetchall()[0]) # returns an array of all the values from the database
 
 def addFixture(homeTeam, visitingTeam, date, meetTime, startTime, finishTime, details, longitude, latitude, scoreHome='0', scoreAway='0'):
-    fixtureID = "1" # generate new fixtureID OR ERROR!!!!!
-    
     cursor.execute(f"""
         INSERT INTO Fixture(
             homeTeam, visitingTeam, date, meetTime, startTime, finishTime,
-            details, longitude, latitude, scoreHome, scoreAway, fixtureID
+            details, latitude, longitude, scoreHome, scoreAway
         ) 
         VALUES (
             '{homeTeam}', '{visitingTeam}', '{date}', '{meetTime}', '{startTime}', '{finishTime}',
-            '{details}', {longitude}, {latitude}, {scoreHome}, {scoreAway}, '{fixtureID}'
+            '{details}', {latitude}, {longitude}, {scoreHome}, {scoreAway}
         )
     """)
     database.commit()
@@ -69,7 +67,7 @@ def addFixture(homeTeam, visitingTeam, date, meetTime, startTime, finishTime, de
         f"Date: {date}, Meet: {meetTime}, Start: {startTime}, Finish: {finishTime}\n"
         f"Location: ({latitude}, {longitude})\n"
         f"Details: {details}\n"
-        f"Score: {scoreHome} - {scoreAway}, ID: {fixtureID}"
+        f"Score: {scoreHome} - {scoreAway}"
     )
 
 def getTeamsAvailable(date):
@@ -93,7 +91,6 @@ def fetchTeamName(teamID):
         SELECT teamName FROM Teams WHERE teamID = "{teamID}"
     """)
     return cursor.fetchone()
-
 
 # print(getLatLong("ENG001"))
 # print(getTeamsAvailable("19/12/2024"))

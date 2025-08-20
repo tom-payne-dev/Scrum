@@ -16,7 +16,6 @@ teamSelection = tk.StringVar(value=teams[0]) # creates a string variable using t
 teamsDropdown = tk.CTkOptionMenu(root, variable=teamSelection, values=teams) # creates a gui dropdown including all the different teams
 teamsDropdown.pack(pady=10, padx=10)
 
-
 positionsLabel = tk.CTkLabel(root, text="Position")
 positionsLabel.pack()
 positions = list(map(str, range(1, 15)))
