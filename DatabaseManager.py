@@ -80,6 +80,18 @@ def getTeamsAvailable(date):
     """) # Selects all teams that do not have a fixture on the passed date
     return ([value[0] for value in cursor.fetchall()])
 
+def getFutureFixtures(teamID):
+    cursor.execute(f"""
+        SELECT * FROM Fixture WHERE homeTeam = "ENG001" OR visitingTeam = "ENG001"
+    """)
+    return cursor.fetchall()[0]
+
+def getFixture(fixtureID):
+    cursor.execute(f"""
+        SELECT * FROM Fixture WHERE fixtureID = {fixtureID}
+    """)
+    return cursor.fetchall()[0]
+    
 def getLatLong(teamID):
     cursor.execute(f"""
         SELECT latitude, longitude FROM Teams WHERE teamID = "{teamID}"
@@ -98,6 +110,7 @@ def fetchTeamName(teamID):
 # print(getUserRecord("tom"))
 # print(ValueExists("tom", "username", "Users"))
 # addFixture("ENG001", "FRA001", "20/12/2024", "13:00", "14:00", "16:00", "Bring Gumshield", "-0.3419", "51.455")
+print(getFutureFixtures("ENG001"))
 
 
 #CheckPassword("tom", "password12!$")

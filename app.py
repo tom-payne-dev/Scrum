@@ -15,6 +15,35 @@ class User:
             self.position = userRecord[4]
             self.teamID = userRecord[5]
 
+class Fixture:
+    def __init__(self, fixtureID):
+            teamRecord = DatabaseManager.getFixture(fixtureID)
+            # print(userRecord)
+            self.teamID = fixtureID
+            self.homeTeam = teamRecord[0]
+            self.awayTeam = teamRecord[1]
+            self.date = teamRecord[2]
+            self.meetTime = teamRecord[3]
+            self.startTime = teamRecord[4]
+            self.finishTime = teamRecord[5]
+            self.details = teamRecord[6]
+            self.location = (teamRecord[7], teamRecord[8])
+            self.scoreHome = teamRecord[9]
+            self.scoreAway = teamRecord[10]
+
+    def printValues(self):
+        print(f"Fixture ID: {self.teamID}")
+        print(f"Home Team: {self.homeTeam}")
+        print(f"Away Team: {self.awayTeam}")
+        print(f"Date: {self.date}")
+        print(f"Meet Time: {self.meetTime}")
+        print(f"Start Time: {self.startTime}")
+        print(f"Finish Time: {self.finishTime}")
+        print(f"Details: {self.details}")
+        print(f"Location: {self.location[0]}, {self.location[1]}")
+        print(f"Score: {self.homeTeam} {self.scoreHome} - {self.scoreAway} {self.awayTeam}")
+
+
 class MainTabView(tk.CTkTabview):
     def __init__(self, master, **kwargs):
         super().__init__(master, **kwargs)
@@ -23,10 +52,18 @@ class MainTabView(tk.CTkTabview):
         self.add("Statistics") # Adds Statistics tabs
 
         #Fixtures Tab
-        self.label = tk.CTkLabel(master=self.tab("Fixtures"), text="Upcoming Matches") # Adds a placeholder label to the tab
-        self.label.grid(row=0, column=0, padx=10, pady=10) # Adds the label to the tab
+        # self.label = tk.CTkLabel(master=self.tab("Fixtures"), text="Upcoming Matches") # Adds a placeholder label to the tab
+        # self.label.grid(row=0, column=0, padx=10, pady=10) # Adds the label to the tab
         self.button = tk.CTkButton(master=self.tab("Fixtures"), text="New Fixture", command=master.OpenFixtureCreator)
         self.button.grid(row=1, column=0, padx=10, pady=10)
+
+class FixturesList(tk.CTkFrame):
+    def __init__(self, master, **kwargs):
+        super().__init__(master, **kwargs)
+
+        # add widgets onto the frame, for example:
+        self.label = tk.CTkLabel(self, text="Upcoming Matches")
+        self.label.grid(row=0, column=0, padx=10, pady=10)
 
 class FixtureWindow(tk.CTkToplevel):
     def __init__(self, user, *args, **kwargs):
@@ -204,5 +241,8 @@ class App(tk.CTk): # inherits the CTk class
             print("New Fixture Window Already Open")
         
 
-session = App("tom")
-session.mainloop()
+
+# session = App("tom")
+# session.mainloop()
+fixtureTest = Fixture("3")
+fixtureTest.printValues()
