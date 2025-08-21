@@ -48,7 +48,7 @@ def getUserRecord(username):
     cursor.execute(f"SELECT * from Users where username = '{username}'") # uses SQL to select the attribute values for all players
     return list(cursor.fetchall()[0]) # returns an array of all the values from the database
 
-def addFixture(homeTeam, visitingTeam, date, meetTime, startTime, finishTime, details, longitude, latitude, scoreHome='0', scoreAway='0'):
+def addFixture(homeTeam, visitingTeam, date, meetTime, startTime, finishTime, details, latitude, longitude, scoreHome='0', scoreAway='0'):
     cursor.execute(f"""
         INSERT INTO Fixture(
             homeTeam, visitingTeam, date, meetTime, startTime, finishTime,
@@ -84,7 +84,7 @@ def getFutureFixtures(teamID):
     cursor.execute(f"""
         SELECT * FROM Fixture WHERE homeTeam = "ENG001" OR visitingTeam = "ENG001"
     """)
-    return cursor.fetchall()[0]
+    return cursor.fetchall()
 
 def getFixture(fixtureID):
     cursor.execute(f"""
@@ -110,7 +110,7 @@ def fetchTeamName(teamID):
 # print(getUserRecord("tom"))
 # print(ValueExists("tom", "username", "Users"))
 # addFixture("ENG001", "FRA001", "20/12/2024", "13:00", "14:00", "16:00", "Bring Gumshield", "-0.3419", "51.455")
-print(getFutureFixtures("ENG001"))
+# print(getFutureFixtures("ENG001"))
 
 
 #CheckPassword("tom", "password12!$")
