@@ -30,6 +30,8 @@ class Fixture:
             self.location = (teamRecord[7], teamRecord[8])
             self.scoreHome = teamRecord[9]
             self.scoreAway = teamRecord[10]
+            self.homeTeamName = DatabaseManager.fetchTeamName(self.homeTeam)
+            self.awayTeamName = DatabaseManager.fetchTeamName(self.awayTeam)
 
     def printValues(self):
         print(f"Fixture ID: {self.fixtureID}")
@@ -41,23 +43,26 @@ class Fixture:
         print(f"Finish Time: {self.finishTime}")
         print(f"Details: {self.details}")
         print(f"Location: {self.location[0]}, {self.location[1]}")
-        print(f"Score: {self.homeTeam} {self.scoreHome} - {self.scoreAway} {self.awayTeam}")
+        print(f"Score: {self.homeTeamName} {self.scoreHome} - {self.scoreAway} {self.awayTeamName}")
 
+#Fixture Functionality
 class FixtureFrame(tk.CTkFrame):
-    def __init__(self, master, fixture, **kwargs):
+    def __init__(self, master, fixture, mainApp, **kwargs):
         super().__init__(master, **kwargs)
         self.fixture = fixture
+        self.mainApp = mainApp
 
-        self.title = tk.CTkLabel(self, text=f"{fixture.homeTeam} vs {fixture.awayTeam} on {fixture.date}")
+        self.title = tk.CTkLabel(self, text=f"{fixture.homeTeamName} vs {fixture.awayTeamName} on {fixture.date}")
         self.title.grid(row=0, column=0, padx=10, pady=10)
-        self.teamSheetButton = tk.CTkButton(self, text="Team Sheet")
+        self.teamSheetButton = tk.CTkButton(self, text="Team Sheet", command=lambda: mainApp.openTeamSheetWindow(fixture.fixtureID))
         self.teamSheetButton.grid(row=0, column=1)
 
 class FixturesList(tk.CTkFrame):
-    def __init__(self, master, user, **kwargs):
+    def __init__(self, master, user, mainApp, **kwargs):
         super().__init__(master, **kwargs)
         self.user = user
         self.teamID = user.teamID
+        self.mainApp = mainApp
 
         # add widgets onto the frame, for example:
         self.label = tk.CTkLabel(self, text="Upcoming Matches") # Title label
@@ -71,28 +76,9 @@ class FixturesList(tk.CTkFrame):
         for singleFixtureData in allFixtureData:
             fixture = Fixture(fixtureID=singleFixtureData[11]) # Converts raw data into fixture class with local attributes
             self.fixtures.append(fixture) # Adds the fixture class to the list
-            fixtureFrame = FixtureFrame(self, fixture=fixture)
+            fixtureFrame = FixtureFrame(self, fixture=fixture, mainApp=self.mainApp)
             fixtureFrame.grid()
             self.fixtureFrames.append(fixtureFrame)
-
-            
-
-
-class MainTabView(tk.CTkTabview):
-    def __init__(self, master, user, **kwargs):
-        super().__init__(master, **kwargs)
-        self.user = user
-
-        self.add("Fixtures") # Adds Fixtures tabs
-        self.add("Statistics") # Adds Statistics tabs
-
-        #Fixtures Tab
-        # self.label = tk.CTkLabel(master=self.tab("Fixtures"), text="Upcoming Matches") # Adds a placeholder label to the tab
-        # self.label.grid(row=0, column=0, padx=10, pady=10) # Adds the label to the tab
-        self.fixtureList = FixturesList(master=self.tab("Fixtures"), user=self.user)
-        self.fixtureList.grid(row=0, column=0, padx=10, pady=10)
-        self.button = tk.CTkButton(master=self.tab("Fixtures"), text="New Fixture", command=master.OpenFixtureCreator)
-        self.button.grid(row=1, column=0, padx=10, pady=10)
 
 class FixtureWindow(tk.CTkToplevel):
     def __init__(self, user, *args, **kwargs):
@@ -252,6 +238,35 @@ class CreateFixtureWindow(tk.CTkToplevel):
         self.destroy()
 
 
+#Team Sheet Window
+class TeamSheetWindow(tk.CTkToplevel):
+    def __init__(self, mainApp, fixtureID, user, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.geometry("700x600")
+        self.mainApp = mainApp
+        self.fixtureID = fixtureID
+        self.fixture = Fixture(fixtureID)
+        self.user = user
+        self.grab_set()
+        self.title(f"{self.fixture.homeTeamName} vs {self.fixture.awayTeamName}")
+
+
+class MainTabView(tk.CTkTabview):
+    def __init__(self, master, user, **kwargs):
+        super().__init__(master, **kwargs)
+        self.user = user
+        self.mainApp = master
+
+        self.add("Fixtures") # Adds Fixtures tabs
+        self.add("Statistics") # Adds Statistics tabs
+
+        #Fixtures Tab
+        # self.label = tk.CTkLabel(master=self.tab("Fixtures"), text="Upcoming Matches") # Adds a placeholder label to the tab
+        # self.label.grid(row=0, column=0, padx=10, pady=10) # Adds the label to the tab
+        self.fixtureList = FixturesList(master=self.tab("Fixtures"), user=self.user, mainApp=self.mainApp)
+        self.fixtureList.grid(row=0, column=0, padx=10, pady=10)
+        self.button = tk.CTkButton(master=self.tab("Fixtures"), text="New Fixture", command=master.OpenFixtureCreator)
+        self.button.grid(row=1, column=0, padx=10, pady=10)
 
 class App(tk.CTk): # inherits the CTk class
     def __init__(self, username):
@@ -259,16 +274,27 @@ class App(tk.CTk): # inherits the CTk class
         self.user = User(username) # adds the user to the app instance for further use
         self.tab_view = MainTabView(master=self, user=self.user) # Initialises the tab view
         self.tab_view.grid(row=0, column=0, padx=100, pady=100) # adds the tab view widget
+        self.title(f"{username}'s Scrum Portal")
 
         self.fixtureWindow = None # initialises the fixture window class variable
+        self.teamSheetWindow = None
     
     def OpenFixtureCreator(self):
         if self.fixtureWindow is None or not self.fixtureWindow.winfo_exists(): # Check for if the window is not open
-            self.fixtureWindow = FixtureWindow(self.user) # instantiates the window
             print("Opening New Fixture Window...")
+            self.fixtureWindow = FixtureWindow(self.user) # instantiates the window
         else:
-            self.fixtureWindow.focus() # focuses the window
             print("New Fixture Window Already Open")
+            self.fixtureWindow.focus() # focuses the window
+    
+    def openTeamSheetWindow(self, fixtureID):
+        if self.teamSheetWindow is None or not self.teamSheetWindow.winfo_exists(): # Check for if the window is not open
+            print("Opening Team Sheet window for fixtureID", fixtureID)
+            self.teamSheetWindow = TeamSheetWindow(self, fixtureID, self.user) # instantiates the window
+        else:
+            print("Team Sheet Window Already Open")
+            self.fixtureWindow.focus() # focuses the window
+
         
 
 
