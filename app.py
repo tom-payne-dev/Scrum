@@ -57,7 +57,8 @@ class FixtureWindow(tk.CTkToplevel):
     
     def Matchmake(self, date):
         homeTeam = self.user.teamID
-        availableTeams = DatabaseManager.getTeamsAvailable(date) # Uses the getTeamsAvailable algorithm to retrieve teams on date
+        self.chosenDate = date
+        availableTeams = DatabaseManager.getTeamsAvailable(self.chosenDate) # Uses the getTeamsAvailable algorithm to retrieve teams on date
         if homeTeam in availableTeams:
             availableTeams.remove(homeTeam)
 
@@ -69,18 +70,18 @@ class FixtureWindow(tk.CTkToplevel):
             distance = self.calculateDistance(awayLatLong) # Finds distance between clubs
             distances[awayTeam] = distance # Creates a Team : Distance pair in the distances dictionary
 
-        closestTeam = availableTeams[0] # Basic value
+        self.closestTeam = availableTeams[0] # Basic value
         for awayTeam in distances: # Loops through all teams
-            if distances[awayTeam] < distances[closestTeam]:
-                closestTeam = awayTeam # If the team is closer than the stored closest team, then it becomes the closest team
+            if distances[awayTeam] < distances[self.closestTeam]:
+                self.closestTeam = awayTeam # If the team is closer than the stored closest team, then it becomes the closest team
         print("Teams:", distances)
-        print("Closest Team:", closestTeam)
+        print("Closest Team:", self.closestTeam)
 
-        self.closestTeamLabel.configure(text=("Closest Team Available: " + DatabaseManager.fetchTeamName(closestTeam)[0]))
+        self.closestTeamLabel.configure(text=("Closest Team Available: " + DatabaseManager.fetchTeamName(self.closestTeam)[0]))
         self.submitFixtureButton.configure(state="normal", command=self.openCreateFixtureWindow)
 
     def openCreateFixtureWindow(self):
-        self.createFixtureWindow = CreateFixtureWindow(master=self, user=self.user)
+        self.createFixtureWindow = CreateFixtureWindow(master=self, user=self.user, awayTeam=self.closestTeam, date=self.chosenDate)
 
     def calculateDistance(self, awayLatLong):
         homeLatLong = DatabaseManager.getLatLong(self.user.teamID) # Retrieve coordinates of user team
@@ -107,11 +108,13 @@ class FixtureWindow(tk.CTkToplevel):
         return d
 
 class CreateFixtureWindow(tk.CTkToplevel):
-    def __init__(self, master, user, *args, **kwargs):
+    def __init__(self, master, user, date=datetime.date.today().strftime(r"%d/%m/%Y"), awayTeam="",*args, **kwargs):
         super().__init__(*args, **kwargs) # Initialises the parent class
         self.user = user
         self.geometry("600x500") # Defines window geometry
         self.grab_set() # Makes the window modal
+        self.date = date
+        self.awayTeam = awayTeam
 
         self.header = tk.CTkLabel(self, text="Create Fixture", font=('Helvetica', 32, 'bold')) 
         self.header.grid(row=0, column=0, padx=10, pady=10) # Adds the heading for the window
@@ -121,12 +124,19 @@ class CreateFixtureWindow(tk.CTkToplevel):
         teams = DatabaseManager.FetchAttributeValues("teamID", "Teams")
         self.awayTeamLabel = tk.CTkLabel(self, text="Choose Away Team")
         self.awayTeamLabel.grid(pady=10, row=1, column=0)
-        self.awayTeamSelection = tk.StringVar(value=teams[0]) # creates a string variable using the first team in the database array
+
+        if self.awayTeam == "":
+            self.awayTeamSelection = tk.StringVar(value=teams[0]) # creates a string variable using the first team in the database array
+        else:
+            self.awayTeamSelection = tk.StringVar(value=self.awayTeam)
+            
         self.awayTeamsDropdown = tk.CTkOptionMenu(self, variable=self.awayTeamSelection, values=teams) # creates a gui dropdown including all the different teams
         self.awayTeamsDropdown.grid(pady=10, padx=10, row=1, column=1)
 
         self.datePicker = CTkDatePicker(self)
         self.datePicker.set_date_format(r"%d/%m/%Y")
+        if date != "":
+            self.datePicker.date_entry.insert(0, self.date)
         self.datePicker.grid(pady=10, row=2, column=0) # Adds a Date picker UI widget
         # self.submitDate = tk.CTkButton(self, text="Submit", command=self.setDate)
         # self.submitDate.grid(pady=10) # Adds a submit button, resulting in the getDate procedure
