@@ -119,10 +119,19 @@ def getPlayersInPosition(position, team):
     
 def submitRSVP(username, fixtureID):
     cursor.execute(f"""
-            INSERT INTO rsvp(username, sessionID, response, declisnedReason)
-            VALUES('{username}', '{fixtureID}', 'Requested', 'N/A')
-        """)
-    database.commit()
+        SELECT COUNT(*) FROM rsvp WHERE username = '{username}' AND sessionID = '{fixtureID}'
+    """)
+    numOfEntries = cursor.fetchall()[0][0]
+    if numOfEntries == 0:
+        cursor.execute(f"""
+                INSERT INTO rsvp(username, sessionID, response, declinedReason)
+                VALUES('{username}', '{fixtureID}', 'Requested', 'N/A')
+            """)
+        database.commit()
+    else:
+        print("RSVP Already Exists for User/Fixture Combination")
+
+# submitRSVP("Player1", "11")
 
 def acceptRSVP(username, fixtureID):
     cursor.execute(f"""

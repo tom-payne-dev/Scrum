@@ -341,6 +341,7 @@ class TeamSheetWindow(tk.CTkToplevel):
         print("Submitting Team Sheet...")
         for playerField in self.playerFieldFrame.playerFields:
             DatabaseManager.submitRSVP(User(playerField.selectPlayerField.get()).username, self.fixtureID)
+            playerField.updatePlayerResponse(playerField.selectPlayerField.get()) # Updates the player response label
             #print(User(playerField.selectPlayerField.get()).username)
 
         
