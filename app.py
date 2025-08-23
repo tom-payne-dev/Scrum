@@ -54,7 +54,7 @@ class FixtureFrame(tk.CTkFrame):
 
         self.title = tk.CTkLabel(self, text=f"{fixture.homeTeamName} vs {fixture.awayTeamName} on {fixture.date}")
         self.title.grid(row=0, column=0, padx=10, pady=10)
-        self.teamSheetButton = tk.CTkButton(self, text="Team Sheet", command=lambda: mainApp.openTeamSheetWindow(fixture.fixtureID))
+        self.teamSheetButton = tk.CTkButton(self, text="Team Sheet", command=lambda: mainApp.OpenTeamSheetWindow(fixture.fixtureID))
         self.teamSheetButton.grid(row=0, column=1)
 
 class FixturesList(tk.CTkFrame):
@@ -64,7 +64,6 @@ class FixturesList(tk.CTkFrame):
         self.teamID = user.teamID
         self.mainApp = mainApp
 
-        # add widgets onto the frame, for example:
         self.label = tk.CTkLabel(self, text="Upcoming Matches") # Title label
         self.label.grid(row=0, column=0, padx=10, pady=10)
         self.loadFixtures() # Loads and displays all future fixtures
@@ -91,7 +90,7 @@ class FixtureWindow(tk.CTkToplevel):
         self.header.grid(row=0, column=0, padx=10, pady=10) # Adds the heading for the window
         
         self.datePicker = CTkDatePicker(self)
-        self.datePicker.set_date_format(r"%d/%m/%Y")
+        self.datePicker.set_date_format(r"%Y-%m-%d")
         self.datePicker.grid(pady=10) # Adds a Date picker UI widget
         self.submitDate = tk.CTkButton(self, text="Submit", command=lambda: self.Matchmake(self.datePicker.get_date()))
         self.submitDate.grid(pady=10) # Adds a submit button, resulting in the getDate procedure
@@ -129,7 +128,7 @@ class FixtureWindow(tk.CTkToplevel):
         print("Teams:", distances)
         print("Closest Team:", self.closestTeam)
 
-        self.closestTeamLabel.configure(text=("Closest Team Available: " + DatabaseManager.fetchTeamName(self.closestTeam)[0]))
+        self.closestTeamLabel.configure(text=("Closest Team Available: " + DatabaseManager.fetchTeamName(self.closestTeam)))
         self.submitFixtureButton.configure(state="normal", command=self.openCreateFixtureWindow)
 
     def openCreateFixtureWindow(self):
@@ -160,7 +159,7 @@ class FixtureWindow(tk.CTkToplevel):
         return d
 
 class CreateFixtureWindow(tk.CTkToplevel):
-    def __init__(self, master, user, date=datetime.date.today().strftime(r"%d/%m/%Y"), awayTeam="",*args, **kwargs):
+    def __init__(self, master, user, date=datetime.date.today().strftime(r"%Y-%m-%d"), awayTeam="", *args, **kwargs):
         super().__init__(*args, **kwargs) # Initialises the parent class
         self.user = user
         self.geometry("600x500") # Defines window geometry
@@ -186,7 +185,7 @@ class CreateFixtureWindow(tk.CTkToplevel):
         self.awayTeamsDropdown.grid(pady=10, padx=10, row=1, column=1)
 
         self.datePicker = CTkDatePicker(self)
-        self.datePicker.set_date_format(r"%d/%m/%Y")
+        self.datePicker.set_date_format(r"%Y-%m-%d")
         if date != "":
             self.datePicker.date_entry.insert(0, self.date)
         self.datePicker.grid(pady=10, row=2, column=0) # Adds a Date picker UI widget
@@ -237,6 +236,53 @@ class CreateFixtureWindow(tk.CTkToplevel):
         DatabaseManager.addFixture(homeTeam, awayTeam, date, meetTime, startTime, finishTime, details, locationLatLong[0], locationLatLong[1]) # Adds a new fixture to the database
         self.destroy()
 
+class PlayerField(tk.CTkFrame):
+    def __init__(self, master, mainApp, position, **kwargs):
+        super().__init__(master, **kwargs)
+        self.mainApp = mainApp
+
+        positionNames = {
+            1: "Loose-Head Prop",
+            2: "Hooker",
+            3: "Tight-Head Prop",
+            4: "Lock",
+            5: "Lock",
+            6: "Blindside Flanker",
+            7: "Openside Flanker",
+            8: "Number 8",
+            9: "Scrum-Half",
+            10: "Fly-Half",
+            11: "Left Wing",
+            12: "Inside Centre",
+            13: "Outside Centre",
+            14: "Right Wing",
+            15: "Fullback",
+            16: "Substitute",
+            17: "Substitute",
+            18: "Substitute",
+            19: "Substitute"
+        }
+
+        self.label = tk.CTkLabel(self, text=f"{positionNames[position]} ({position})") # Adds the position label
+        self.label.grid(row=0, column=0, padx=20)
+        self.playersInPosition = DatabaseManager.getPlayersInPosition(position, mainApp.user.teamID) # Retrieves all player usernames in the specified position
+        self.selectPlayerField = tk.CTkOptionMenu(self, values=self.playersInPosition) # Creates a gui dropdown with the players
+        self.selectPlayerField.grid(pady=10, padx=10, row=0, column=1)
+
+class PlayerFieldFrame(tk.CTkScrollableFrame):
+    def __init__(self, master, mainApp, **kwargs):
+        super().__init__(master, **kwargs)
+        self.mainApp = mainApp
+        self.constructPlayerFields()
+
+    def constructPlayerFields(self):
+        self.playerFields = [] # Stores all player fields
+        for i in range(19):
+            playerField = PlayerField(self, self.mainApp, (i+1)) # Creates a player field for each position
+            playerField.grid(row=i, column=0, sticky="e") 
+            self.playerFields.append(playerField) # Adds the field to the array of player fields
+        
+        
 
 #Team Sheet Window
 class TeamSheetWindow(tk.CTkToplevel):
@@ -245,11 +291,24 @@ class TeamSheetWindow(tk.CTkToplevel):
         self.geometry("700x600")
         self.mainApp = mainApp
         self.fixtureID = fixtureID
-        self.fixture = Fixture(fixtureID)
+        self.fixture = Fixture(fixtureID) # Converts fixtureID string into Fixture Object
         self.user = user
-        self.grab_set()
-        self.title(f"{self.fixture.homeTeamName} vs {self.fixture.awayTeamName}")
+        self.grab_set() # Makes the window modal, so it must be closed before returning to the main app
+        self.title(f"{self.fixture.homeTeamName} vs {self.fixture.awayTeamName}") # Sets the window title
+        self.grid_columnconfigure(0, weight=1) # Makes the first column expandable
 
+        self.playerFieldFrame = PlayerFieldFrame(self, mainApp, width=400, height=500) # Creates the scrollable frame for the player fields
+        self.playerFieldFrame.grid(row=0, column=0, sticky="e")
+        self.teamSheetSubmitButton = tk.CTkButton(self, text="Submit Team Sheet", command=self.submitTeamSheet) # Creates the submit button
+        self.teamSheetSubmitButton.grid(row=1, column=0, pady=10, sticky="e")
+    
+    def submitTeamSheet(self):
+        print("Submitting Team Sheet...")
+        for playerField in self.playerFieldFrame.playerFields:
+            DatabaseManager.submitRSVP(User(playerField.selectPlayerField.get()).username, self.fixtureID)
+            #print(User(playerField.selectPlayerField.get()).username)
+
+        
 
 class MainTabView(tk.CTkTabview):
     def __init__(self, master, user, **kwargs):
@@ -287,18 +346,20 @@ class App(tk.CTk): # inherits the CTk class
             print("New Fixture Window Already Open")
             self.fixtureWindow.focus() # focuses the window
     
-    def openTeamSheetWindow(self, fixtureID):
+    def OpenTeamSheetWindow(self, fixtureID):
         if self.teamSheetWindow is None or not self.teamSheetWindow.winfo_exists(): # Check for if the window is not open
             print("Opening Team Sheet window for fixtureID", fixtureID)
             self.teamSheetWindow = TeamSheetWindow(self, fixtureID, self.user) # instantiates the window
         else:
             print("Team Sheet Window Already Open")
             self.fixtureWindow.focus() # focuses the window
+    
+
 
         
 
 
-session = App("tom")
+session = App("Player1")
 session.mainloop()
 # fixtureTest = Fixture("3")
 # fixtureTest.printValues()

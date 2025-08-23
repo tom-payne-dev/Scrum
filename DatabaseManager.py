@@ -82,7 +82,7 @@ def getTeamsAvailable(date):
 
 def getFutureFixtures(teamID):
     cursor.execute(f"""
-        SELECT * FROM Fixture WHERE homeTeam = "ENG001" OR visitingTeam = "ENG001"
+        SELECT * FROM Fixture WHERE (homeTeam = "ENG001" OR visitingTeam = "ENG001") and "date" > date('now') ORDER BY "date" ASC;
     """)
     return cursor.fetchall()
 
@@ -104,6 +104,28 @@ def fetchTeamName(teamID):
     """)
     return cursor.fetchone()[0]
 
+def getPlayersInPosition(position, team):
+    cursor.execute(f"""
+        SELECT username FROM Users WHERE preferredPosition = {position} AND teamID = "{team}"
+    """)
+    players = cursor.fetchall()
+    if players:
+        return [player[0] for player in players] # Returns players in the specified position
+    else:
+        cursor.execute(f"""
+            SELECT username FROM Users WHERE teamID = "{team}"
+        """)
+        return [player[0] for player in cursor.fetchall()] # Returns all players if no players in position
+    
+def submitRSVP(username, fixtureID):
+    cursor.execute(f"""
+            INSERT INTO rsvp(username, sessionID, response, declinedReason)
+            VALUES('{username}', '{fixtureID}', 'Requested', 'N/A')
+        """)
+    database.commit()
+
+
+#print(getPlayersInPosition("2", "ENG001"))
 # print(getLatLong("ENG001"))
 # print(getTeamsAvailable("19/12/2024"))
 # print(getTeamsAvailable("20/12/2024"))
@@ -113,4 +135,4 @@ def fetchTeamName(teamID):
 # print(getFutureFixtures("ENG001"))
 
 
-#CheckPassword("tom", "password12!$")
+#CheckPassword("tom", "password12!$")#
