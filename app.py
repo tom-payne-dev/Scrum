@@ -54,8 +54,24 @@ class FixtureFrame(tk.CTkFrame):
 
         self.title = tk.CTkLabel(self, text=f"{fixture.homeTeamName} vs {fixture.awayTeamName} on {fixture.date}")
         self.title.grid(row=0, column=0, padx=10, pady=10)
-        self.teamSheetButton = tk.CTkButton(self, text="Team Sheet", command=lambda: mainApp.OpenTeamSheetWindow(fixture.fixtureID))
-        self.teamSheetButton.grid(row=0, column=1)
+        if mainApp.user.role == "Coach":
+            self.teamSheetButton = tk.CTkButton(self, text="Team Sheet", command=lambda: mainApp.OpenTeamSheetWindow(fixture.fixtureID))
+            self.teamSheetButton.grid(row=0, column=1)
+        if mainApp.user.role == "Player":
+            response = DatabaseManager.retrieveRSVPStatus(mainApp.user.username, fixture.fixtureID)
+            self.responseLabel = tk.CTkLabel(self, text=response)
+            self.responseLabel.grid(row=0, column=4)
+
+class FixtureRequestFrame(FixtureFrame):
+    def __init__(self, master, fixture, mainApp, **kwargs):
+        super().__init__(master, fixture, mainApp, **kwargs)
+        self.user = mainApp.user
+
+        self.acceptButton = tk.CTkButton(self, text="Accept", fg_color="green")
+        self.acceptButton.grid(row = 0, column=1)
+        self.declineButton = tk.CTkButton(self, text="Decline", fg_color="red")
+        self.declineButton.grid(row = 0, column=2)
+
 
 class FixturesList(tk.CTkFrame):
     def __init__(self, master, user, mainApp, **kwargs):
@@ -66,9 +82,8 @@ class FixturesList(tk.CTkFrame):
 
         self.label = tk.CTkLabel(self, text="Upcoming Matches") # Title label
         self.label.grid(row=0, column=0, padx=10, pady=10)
-        self.loadFixtures() # Loads and displays all future fixtures
 
-    def loadFixtures(self):
+    def loadTeamFixtures(self):
         self.fixtures = [] # Stores all fixture values
         self.fixtureFrames = []
         allFixtureData = DatabaseManager.getFutureFixtures(self.user.teamID) # Retrieves list of fixture data
@@ -78,6 +93,18 @@ class FixturesList(tk.CTkFrame):
             fixtureFrame = FixtureFrame(self, fixture=fixture, mainApp=self.mainApp)
             fixtureFrame.grid()
             self.fixtureFrames.append(fixtureFrame)
+
+    def loadFixtureRequests(self):
+        self.fixtureRequests = [] # Stores all fixture values
+        self.fixtureRequestFrames = []
+        allFixtureData = DatabaseManager.getFutureFixtures(self.user.teamID) # Retrieves list of fixture data
+        for singleFixtureData in allFixtureData: 
+            fixture = Fixture(fixtureID=singleFixtureData[11]) # Converts raw data into fixture class with local attributes
+            if DatabaseManager.retrieveRSVPStatus(self.user.username, fixture.fixtureID) == "Requested":
+                self.fixtureRequests.append(fixture) # Adds the fixture class to the list
+                fixtureRequestFrame = FixtureRequestFrame(self, fixture=fixture, mainApp=self.mainApp)
+                fixtureRequestFrame.grid()
+                self.fixtureRequestFrames.append(fixtureRequestFrame)
 
 class FixtureWindow(tk.CTkToplevel):
     def __init__(self, user, *args, **kwargs):
@@ -237,9 +264,12 @@ class CreateFixtureWindow(tk.CTkToplevel):
         self.destroy()
 
 class PlayerField(tk.CTkFrame):
-    def __init__(self, master, mainApp, position, **kwargs):
+    def __init__(self, master, mainApp, fixtureID, position, **kwargs):
         super().__init__(master, **kwargs)
+        self.master = master
         self.mainApp = mainApp
+        self.fixtureID = fixtureID
+        self.position = position
 
         positionNames = {
             1: "Loose-Head Prop",
@@ -263,26 +293,31 @@ class PlayerField(tk.CTkFrame):
             19: "Substitute"
         }
 
-        self.label = tk.CTkLabel(self, text=f"{positionNames[position]} ({position})") # Adds the position label
+        self.label = tk.CTkLabel(self, text=f"{positionNames[position]} ({self.position})") # Adds the position label
         self.label.grid(row=0, column=0, padx=20)
-        self.playersInPosition = DatabaseManager.getPlayersInPosition(position, mainApp.user.teamID) # Retrieves all player usernames in the specified position
-        self.selectPlayerField = tk.CTkOptionMenu(self, values=self.playersInPosition) # Creates a gui dropdown with the players
+        self.playersInPosition = DatabaseManager.getPlayersInPosition(self.position, self.mainApp.user.teamID) # Retrieves all player usernames in the specified position
+        self.selectPlayerField = tk.CTkOptionMenu(self, values=self.playersInPosition, command=self.updatePlayerResponse) # Creates a gui dropdown with the players
         self.selectPlayerField.grid(pady=10, padx=10, row=0, column=1)
+        self.playerResponseLabel = tk.CTkLabel(self, text=DatabaseManager.retrieveRSVPStatus(self.selectPlayerField.get(), self.fixtureID))
+        self.playerResponseLabel.grid(row=0, column=2, padx=20)
+    
+    def updatePlayerResponse(self, choice):
+        self.playerResponseLabel.configure(text=DatabaseManager.retrieveRSVPStatus(choice, self.fixtureID))
 
 class PlayerFieldFrame(tk.CTkScrollableFrame):
-    def __init__(self, master, mainApp, **kwargs):
+    def __init__(self, master, fixtureID, mainApp, **kwargs):
         super().__init__(master, **kwargs)
         self.mainApp = mainApp
+        self.fixtureID = fixtureID  
+
         self.constructPlayerFields()
 
     def constructPlayerFields(self):
         self.playerFields = [] # Stores all player fields
         for i in range(19):
-            playerField = PlayerField(self, self.mainApp, (i+1)) # Creates a player field for each position
+            playerField = PlayerField(self, mainApp=self.mainApp, fixtureID=self.fixtureID, position=(i+1)) # Creates a player field for each position
             playerField.grid(row=i, column=0, sticky="e") 
             self.playerFields.append(playerField) # Adds the field to the array of player fields
-        
-        
 
 #Team Sheet Window
 class TeamSheetWindow(tk.CTkToplevel):
@@ -297,7 +332,7 @@ class TeamSheetWindow(tk.CTkToplevel):
         self.title(f"{self.fixture.homeTeamName} vs {self.fixture.awayTeamName}") # Sets the window title
         self.grid_columnconfigure(0, weight=1) # Makes the first column expandable
 
-        self.playerFieldFrame = PlayerFieldFrame(self, mainApp, width=400, height=500) # Creates the scrollable frame for the player fields
+        self.playerFieldFrame = PlayerFieldFrame(self, mainApp=self.mainApp, fixtureID=self.fixtureID, width=400, height=500) # Creates the scrollable frame for the player fields
         self.playerFieldFrame.grid(row=0, column=0, sticky="e")
         self.teamSheetSubmitButton = tk.CTkButton(self, text="Submit Team Sheet", command=self.submitTeamSheet) # Creates the submit button
         self.teamSheetSubmitButton.grid(row=1, column=0, pady=10, sticky="e")
@@ -318,14 +353,25 @@ class MainTabView(tk.CTkTabview):
 
         self.add("Fixtures") # Adds Fixtures tabs
         self.add("Statistics") # Adds Statistics tabs
+        if user.role == "Player":
+            if DatabaseManager.retrieveRSVPRequests(user.username): # Checks if there are any fixture requests to respond to
+                self.add("Fixture Requests") # Adds a fixture requests tab
+                self.requestedFixtureList = FixturesList(master=self.tab("Fixture Requests"), user=self.user, mainApp=self.mainApp)
+                self.requestedFixtureList.loadFixtureRequests()
+                self.requestedFixtureList.grid(row=0, column=0, padx=10, pady=10)
+                
 
         #Fixtures Tab
         # self.label = tk.CTkLabel(master=self.tab("Fixtures"), text="Upcoming Matches") # Adds a placeholder label to the tab
         # self.label.grid(row=0, column=0, padx=10, pady=10) # Adds the label to the tab
         self.fixtureList = FixturesList(master=self.tab("Fixtures"), user=self.user, mainApp=self.mainApp)
+        self.fixtureList.loadTeamFixtures() # Loads and displays all future fixtures
         self.fixtureList.grid(row=0, column=0, padx=10, pady=10)
-        self.button = tk.CTkButton(master=self.tab("Fixtures"), text="New Fixture", command=master.OpenFixtureCreator)
-        self.button.grid(row=1, column=0, padx=10, pady=10)
+        
+        if user.role == "Coach": # Only show "New Fixture" button if the account loaded is a coach account
+            self.button = tk.CTkButton(master=self.tab("Fixtures"), text="New Fixture", command=master.OpenFixtureCreator)
+            self.button.grid(row=1, column=0, padx=10, pady=10)
+
 
 class App(tk.CTk): # inherits the CTk class
     def __init__(self, username):
@@ -356,10 +402,9 @@ class App(tk.CTk): # inherits the CTk class
     
 
 
-        
-
-
 session = App("Player1")
+session.mainloop()
+session = App("Coach1")
 session.mainloop()
 # fixtureTest = Fixture("3")
 # fixtureTest.printValues()

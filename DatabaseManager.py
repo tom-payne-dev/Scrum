@@ -106,24 +106,50 @@ def fetchTeamName(teamID):
 
 def getPlayersInPosition(position, team):
     cursor.execute(f"""
-        SELECT username FROM Users WHERE preferredPosition = {position} AND teamID = "{team}"
+        SELECT username FROM Users WHERE preferredPosition = {position} AND teamID = "{team}" AND role="Player"
     """)
     players = cursor.fetchall()
     if players:
         return [player[0] for player in players] # Returns players in the specified position
     else:
         cursor.execute(f"""
-            SELECT username FROM Users WHERE teamID = "{team}"
+            SELECT username FROM Users WHERE teamID = "{team}" AND role="Player"
         """)
         return [player[0] for player in cursor.fetchall()] # Returns all players if no players in position
     
 def submitRSVP(username, fixtureID):
     cursor.execute(f"""
-            INSERT INTO rsvp(username, sessionID, response, declinedReason)
+            INSERT INTO rsvp(username, sessionID, response, declisnedReason)
             VALUES('{username}', '{fixtureID}', 'Requested', 'N/A')
         """)
     database.commit()
 
+def acceptRSVP(username, fixtureID):
+    cursor.execute(f"""
+            UPDATE rsvp
+            SET response = "Accepted"
+            WHERE response = "Requested" and sessionID = '{fixtureID}'
+        """)
+    return cursor.fetchall()
+
+def retrieveRSVPRequests(username):
+    cursor.execute(f"""
+            SELECT * FROM rsvp WHERE username = '{username}'
+        """)
+    return cursor.fetchall()
+
+def retrieveRSVPStatus(username, fixtureID):
+    cursor.execute(f"""
+            SELECT response FROM rsvp WHERE username = '{username}' and sessionID = '{fixtureID}'
+        """)
+    status = cursor.fetchall()
+    if status: # If there has been a request sent
+        return status[0][0] # Return the current response
+    else: # Otherwise
+        return "None Sent" # Return that no request has been sent
+
+# print(retrieveRSVPRequests("Player20"))
+# print(retrieveRSVPStatus("Player2", "11"))
 
 #print(getPlayersInPosition("2", "ENG001"))
 # print(getLatLong("ENG001"))
