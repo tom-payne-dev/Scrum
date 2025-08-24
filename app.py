@@ -67,10 +67,20 @@ class FixtureRequestFrame(FixtureFrame):
         super().__init__(master, fixture, mainApp, **kwargs)
         self.user = mainApp.user
 
-        self.acceptButton = tk.CTkButton(self, text="Accept", fg_color="green")
+        self.acceptButton = tk.CTkButton(self, text="Accept", fg_color="green" , command=self.acceptRequest)
         self.acceptButton.grid(row = 0, column=1)
-        self.declineButton = tk.CTkButton(self, text="Decline", fg_color="red")
+        self.declineButton = tk.CTkButton(self, text="Decline", fg_color="red", command=self.declineRequest)
         self.declineButton.grid(row = 0, column=2)
+    
+    def acceptRequest(self):
+        DatabaseManager.acceptRSVP(self.user.username, self.fixture.fixtureID)
+        self.mainApp.refreshFixturesStatus()
+        self.destroy()
+
+    def declineRequest(self):
+        DatabaseManager.declineRSVP(self.user.username, self.fixture.fixtureID)
+        self.mainApp.refreshFixturesStatus()
+        self.destroy()
 
 
 class FixturesList(tk.CTkFrame):
@@ -93,6 +103,11 @@ class FixturesList(tk.CTkFrame):
             fixtureFrame = FixtureFrame(self, fixture=fixture, mainApp=self.mainApp)
             fixtureFrame.grid()
             self.fixtureFrames.append(fixtureFrame)
+    
+    def refreshTeamFixtures(self):
+        for frame in self.fixtureFrames:
+            frame.destroy()
+        self.loadTeamFixtures()
 
     def loadFixtureRequests(self):
         self.fixtureRequests = [] # Stores all fixture values
@@ -101,7 +116,7 @@ class FixturesList(tk.CTkFrame):
         # print("All Fixture Data:", allFixtureData)
         for singleFixtureData in allFixtureData: 
             fixture = Fixture(fixtureID=singleFixtureData[11]) # Converts raw data into fixture class with local attributes
-            if DatabaseManager.retrieveRSVPStatus(self.user.username, fixture.fixtureID).startswith("Requested in position"):
+            if "Requested in position" in DatabaseManager.retrieveRSVPStatus(self.user.username, fixture.fixtureID):
                 self.fixtureRequests.append(fixture) # Adds the fixture class to the list
                 fixtureRequestFrame = FixtureRequestFrame(self, fixture=fixture, mainApp=self.mainApp)
                 fixtureRequestFrame.grid()
@@ -315,6 +330,15 @@ class PlayerField(tk.CTkFrame):
             self.playerResponseLabel.configure(fg_color="transparent")
         else:
             self.playerResponseLabel.configure(fg_color="red")
+        # Split status into lines and check for exact match
+        status_lines = status.splitlines()
+        if f"Accepted in position {self.position}" in status_lines:
+            self.playerResponseLabel.configure(fg_color="green")
+            self.acceptedPlayerField = tk.CTkLabel(self, text=self.selectPlayerField.get())
+            self.selectPlayerField.destroy()
+            self.acceptedPlayerField.grid(pady=10, padx=10, row=0, column=1)
+        elif "Declined in position" in status:
+            self.playerResponseLabel.configure(fg_color="orange")
 
 class PlayerFieldFrame(tk.CTkScrollableFrame):
     def __init__(self, master, fixtureID, mainApp, **kwargs):
@@ -413,9 +437,13 @@ class App(tk.CTk): # inherits the CTk class
             print("Team Sheet Window Already Open")
             self.fixtureWindow.focus() # focuses the window
     
+    def refreshFixturesStatus(self):
+        self.tab_view.fixtureList.refreshTeamFixtures()
+        
+    
 
 
-session = App("Player1")
+session = App("Player2")
 session.mainloop()
 session = App("Coach1")
 session.mainloop()

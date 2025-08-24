@@ -119,7 +119,7 @@ def getPlayersInPosition(position, team):
     
 def getPlayerInPosition(position, fixtureID):
     cursor.execute(f"""
-        SELECT username FROM rsvp WHERE position = {position} AND sessionID = '{fixtureID}'
+        SELECT username FROM rsvp WHERE position = {position} AND sessionID = '{fixtureID}' AND (response='Requested' OR response='Accepted')
     """)
     player = cursor.fetchone()
     if player:
@@ -130,10 +130,15 @@ def getPlayerInPosition(position, fixtureID):
     
 def submitRSVP(username, fixtureID, position):
     cursor.execute(f"""
-        SELECT COUNT(*) FROM rsvp WHERE username = '{username}' AND sessionID = '{fixtureID}'
+        SELECT COUNT(*) FROM rsvp WHERE username = '{username}' AND sessionID = '{fixtureID}' AND response='Requested'
     """) # Selects the number of entries in the RSVP table for the user/fixture combination
     numOfEntries = cursor.fetchall()[0][0] # Fetches the number of entries from the cursor
-    if numOfEntries == 0: # If there are no entries, the user has not been submitted an RSVP for this fixture
+    cursor.execute(f"""
+        SELECT COUNT(*) FROM rsvp WHERE username = '{username}' AND sessionID = '{fixtureID}' AND response='Accepted'
+    """) # Selects the number of acceptance entries in the RSVP table for the user/fixture combination
+    numOfAcceptances = cursor.fetchall()[0][0] # Fetches the number of entries from the cursor
+
+    if numOfEntries == 0 and numOfAcceptances == 0: # If there are no entries, the user has not been submitted an RSVP for this fixture
         #Check if the position is already filled
         cursor.execute(f"""
                 SELECT username FROM rsvp WHERE position = '{position}' AND sessionID = '{fixtureID}'
@@ -141,7 +146,7 @@ def submitRSVP(username, fixtureID, position):
         existing = cursor.fetchone()
         if existing: # If there is already a player in this position
             cursor.execute(f"""
-                DELETE FROM rsvp WHERE sessionID = '{fixtureID}' AND position = '{position}'
+                DELETE FROM rsvp WHERE sessionID = '{fixtureID}' AND position = '{position}' AND response = 'Requested'
             """)
             database.commit() # Remove them from the RSVP list
             print("Removed existing player " + existing[0] + " from position " + str(position) + " for fixture " + str(fixtureID))
@@ -152,17 +157,20 @@ def submitRSVP(username, fixtureID, position):
         database.commit()
         print("RSVP Submitted for User/Fixture Combination " + "Username: " + username + " FixtureID: " + str(fixtureID) + " Position: " + str(position))
         return True
+    elif numOfAcceptances > 0: # If the user has already been accepted for this fixture, do nothing
+        # print("RSVP Already Accepted for User/Fixture Combination " + "Username: " + username + " FixtureID: " + str(fixtureID) + " Position: " + str(position))
+        return False
     else: # If there are entries, the user has already submitted an RSVP for this fixture
         # print("RSVP Already Exists for User/Fixture Combination " + "Username: " + username + " FixtureID: " + str(fixtureID) + " Position: " + str(position))
         cursor.execute(f"""
-            SELECT position FROM rsvp WHERE username = '{username}' AND sessionID = '{fixtureID}' AND position = '{position}'
+            SELECT position FROM rsvp WHERE username = '{username}' AND sessionID = '{fixtureID}' AND position = '{position}' AND response = 'Requested'
         """)
         if cursor.fetchone(): # If the user is trying to submit the same position again, do nothing
             return False
         
         # If the position is new, remove the user's old RSVP for this fixture
         cursor.execute(f"""
-            DELETE FROM rsvp WHERE username = '{username}' AND sessionID = '{fixtureID}'
+            DELETE FROM rsvp WHERE username = '{username}' AND sessionID = '{fixtureID}' AND response = 'Requested'
         """)
         database.commit()
         submitRSVP(username, fixtureID, position)
@@ -173,7 +181,25 @@ def acceptRSVP(username, fixtureID):
     cursor.execute(f"""
             UPDATE rsvp
             SET response = "Accepted"
-            WHERE response = "Requested" and sessionID = '{fixtureID}'
+            WHERE response = "Requested" AND sessionID = {fixtureID} AND username = '{username}'
+        """)
+    database.commit()
+    return cursor.fetchall()
+
+def declineRSVP(username, fixtureID, reason="N/A"):
+    cursor.execute(f"""
+            UPDATE rsvp
+            SET response = "Declined", declinedReason = '{reason}'
+            WHERE response = "Requested" AND sessionID = {fixtureID} AND username = '{username}'
+        """)
+    database.commit()
+    return cursor.fetchall()
+
+# acceptRSVP("Player1", "11")
+
+def retrieveAcceptedRSVPPlayers(fixtureID):
+    cursor.execute(f"""
+            SELECT username, position FROM rsvp WHERE sessionID = '{fixtureID}' AND response = 'Accepted'
         """)
     return cursor.fetchall()
 
@@ -189,7 +215,10 @@ def retrieveRSVPStatus(username, fixtureID):
         """)
     status = cursor.fetchall()
     if status: # If there has been a request sent
-        return status[0][0] + " in position " + str(status[0][1]) # Return the current response
+        returnString = ""
+        for log in status:
+            returnString = returnString + "\n" + log[0] + " in position " + str(log[1]) # Return the current response
+        return returnString
     else: # Otherwise
         return "None Sent" # Return that no request has been sent
 
