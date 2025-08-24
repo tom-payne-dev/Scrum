@@ -321,7 +321,7 @@ class PlayerFieldFrame(tk.CTkScrollableFrame):
         super().__init__(master, **kwargs)
         self.mainApp = mainApp
         self.fixtureID = fixtureID
-        
+
         self.constructPlayerFields()
 
     def constructPlayerFields(self):
