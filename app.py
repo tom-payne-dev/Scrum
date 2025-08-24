@@ -98,9 +98,10 @@ class FixturesList(tk.CTkFrame):
         self.fixtureRequests = [] # Stores all fixture values
         self.fixtureRequestFrames = []
         allFixtureData = DatabaseManager.getFutureFixtures(self.user.teamID) # Retrieves list of fixture data
+        # print("All Fixture Data:", allFixtureData)
         for singleFixtureData in allFixtureData: 
             fixture = Fixture(fixtureID=singleFixtureData[11]) # Converts raw data into fixture class with local attributes
-            if DatabaseManager.retrieveRSVPStatus(self.user.username, fixture.fixtureID) == "Requested":
+            if DatabaseManager.retrieveRSVPStatus(self.user.username, fixture.fixtureID).startswith("Requested in position"):
                 self.fixtureRequests.append(fixture) # Adds the fixture class to the list
                 fixtureRequestFrame = FixtureRequestFrame(self, fixture=fixture, mainApp=self.mainApp)
                 fixtureRequestFrame.grid()
@@ -297,19 +298,30 @@ class PlayerField(tk.CTkFrame):
         self.label.grid(row=0, column=0, padx=20)
         self.playersInPosition = DatabaseManager.getPlayersInPosition(self.position, self.mainApp.user.teamID) # Retrieves all player usernames in the specified position
         self.selectPlayerField = tk.CTkOptionMenu(self, values=self.playersInPosition, command=self.updatePlayerResponse) # Creates a gui dropdown with the players
+        currentPlayer = DatabaseManager.getPlayerInPosition(self.position, self.fixtureID)
+
+        if currentPlayer:
+            self.selectPlayerField.set(currentPlayer) # Sets the default value to the first player in the list
+        
         self.selectPlayerField.grid(pady=10, padx=10, row=0, column=1)
         self.playerResponseLabel = tk.CTkLabel(self, text=DatabaseManager.retrieveRSVPStatus(self.selectPlayerField.get(), self.fixtureID))
         self.playerResponseLabel.grid(row=0, column=2, padx=20)
+        self.updatePlayerResponse(self.selectPlayerField.get())
     
     def updatePlayerResponse(self, choice):
-        self.playerResponseLabel.configure(text=DatabaseManager.retrieveRSVPStatus(choice, self.fixtureID))
+        status = DatabaseManager.retrieveRSVPStatus(choice, self.fixtureID)
+        self.playerResponseLabel.configure(text=status)
+        if status.endswith("in position " + str(self.position)):
+            self.playerResponseLabel.configure(fg_color="transparent")
+        else:
+            self.playerResponseLabel.configure(fg_color="red")
 
 class PlayerFieldFrame(tk.CTkScrollableFrame):
     def __init__(self, master, fixtureID, mainApp, **kwargs):
         super().__init__(master, **kwargs)
         self.mainApp = mainApp
-        self.fixtureID = fixtureID  
-
+        self.fixtureID = fixtureID
+        
         self.constructPlayerFields()
 
     def constructPlayerFields(self):
@@ -332,7 +344,7 @@ class TeamSheetWindow(tk.CTkToplevel):
         self.title(f"{self.fixture.homeTeamName} vs {self.fixture.awayTeamName}") # Sets the window title
         self.grid_columnconfigure(0, weight=1) # Makes the first column expandable
 
-        self.playerFieldFrame = PlayerFieldFrame(self, mainApp=self.mainApp, fixtureID=self.fixtureID, width=400, height=500) # Creates the scrollable frame for the player fields
+        self.playerFieldFrame = PlayerFieldFrame(self, mainApp=self.mainApp, fixtureID=self.fixtureID, width=600, height=500) # Creates the scrollable frame for the player fields
         self.playerFieldFrame.grid(row=0, column=0, sticky="e")
         self.teamSheetSubmitButton = tk.CTkButton(self, text="Submit Team Sheet", command=self.submitTeamSheet) # Creates the submit button
         self.teamSheetSubmitButton.grid(row=1, column=0, pady=10, sticky="e")
@@ -340,7 +352,7 @@ class TeamSheetWindow(tk.CTkToplevel):
     def submitTeamSheet(self):
         print("Submitting Team Sheet...")
         for playerField in self.playerFieldFrame.playerFields:
-            DatabaseManager.submitRSVP(User(playerField.selectPlayerField.get()).username, self.fixtureID)
+            DatabaseManager.submitRSVP(User(playerField.selectPlayerField.get()).username, self.fixtureID, playerField.position)
             playerField.updatePlayerResponse(playerField.selectPlayerField.get()) # Updates the player response label
             #print(User(playerField.selectPlayerField.get()).username)
 

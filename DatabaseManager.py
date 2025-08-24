@@ -117,19 +117,30 @@ def getPlayersInPosition(position, team):
         """)
         return [player[0] for player in cursor.fetchall()] # Returns all players if no players in position
     
-def submitRSVP(username, fixtureID):
+def getPlayerInPosition(position, fixtureID):
+    cursor.execute(f"""
+        SELECT username FROM rsvp WHERE position = {position} AND sessionID = '{fixtureID}'
+    """)
+    player = cursor.fetchone()
+    if player:
+        return player[0]
+
+    
+def submitRSVP(username, fixtureID, position):
     cursor.execute(f"""
         SELECT COUNT(*) FROM rsvp WHERE username = '{username}' AND sessionID = '{fixtureID}'
     """)
     numOfEntries = cursor.fetchall()[0][0]
     if numOfEntries == 0:
         cursor.execute(f"""
-                INSERT INTO rsvp(username, sessionID, response, declinedReason)
-                VALUES('{username}', '{fixtureID}', 'Requested', 'N/A')
+                INSERT INTO rsvp(username, sessionID, response, declinedReason, position)
+                VALUES('{username}', '{fixtureID}', 'Requested', 'N/A', '{position}')
             """)
         database.commit()
+        return True
     else:
-        print("RSVP Already Exists for User/Fixture Combination")
+        # print("RSVP Already Exists for User/Fixture Combination " + "Username: " + username + " FixtureID: " + str(fixtureID) + " Position: " + str(position))
+        return False
 
 # submitRSVP("Player1", "11")
 
@@ -149,15 +160,15 @@ def retrieveRSVPRequests(username):
 
 def retrieveRSVPStatus(username, fixtureID):
     cursor.execute(f"""
-            SELECT response FROM rsvp WHERE username = '{username}' and sessionID = '{fixtureID}'
+            SELECT response, position FROM rsvp WHERE username = '{username}' and sessionID = '{fixtureID}'
         """)
     status = cursor.fetchall()
     if status: # If there has been a request sent
-        return status[0][0] # Return the current response
+        return status[0][0] + " in position " + str(status[0][1]) # Return the current response
     else: # Otherwise
         return "None Sent" # Return that no request has been sent
 
-# print(retrieveRSVPRequests("Player20"))
+# print(retrieveRSVPStatus("Player20", "11"))
 # print(retrieveRSVPStatus("Player2", "11"))
 
 #print(getPlayersInPosition("2", "ENG001"))
