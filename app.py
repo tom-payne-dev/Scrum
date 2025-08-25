@@ -5,6 +5,7 @@ import datetime
 import math
 import matplotlib.pyplot as plt
 import numpy as np
+from PIL import Image
 
 class User:
     def __init__(self, username):
@@ -382,10 +383,44 @@ class TeamSheetWindow(tk.CTkToplevel):
             playerField.updatePlayerResponse(playerField.selectPlayerField.get()) # Updates the player response label
             #print(User(playerField.selectPlayerField.get()).username)
 
+class AttendanceGraph(tk.CTkFrame):
+    def __init__(self, master, mainApp, player, year, **kwargs):
+        super().__init__(master, **kwargs)
+        self.mainApp = mainApp
+        self.master = master
+        self.player = player
+        self.year = year
+
+        self.labels = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'] # x-axis labels
+        self.values = [] # y-axis values
+        for label in self.labels:
+            attendanceData = DatabaseManager.getPlayerAcceptances(self.player, self.labels.index(label)+1, "2025") # Get an array of dates the player accepted in the month
+            self.values.append(len(attendanceData)) # Adds the number of dates the player accepted in the month
+        
+        figure, axis = plt.subplots(figsize=(10, 3)) # Create a figure (a canvas) and axis (graph cache) with a specific size
+        axis.bar(self.labels, self.values) # Draws a bar chart using the self.
+        axis.set_xlabel('Month') # Adds month label for x axis
+        axis.set_ylabel('Number of Attendances') # Adds y label for number of attendances
+        axis.set_title(f'Attendance Record for {self.player} in {self.year}') # Adds a title for the graph
+        figure.tight_layout() # Makes sure the graph will be built in a tight layout for no overlapping
+        figure.canvas.draw() # renders the graph formed onto the canvas
+        img = np.array(figure.canvas.buffer_rgba()) # extracts raw pixel data in RBGA format
+        pil_img = Image.fromarray(img) # converts the raw pixel data into a PIL image object
+        plt.close(figure) # Close the figure (cache) so it doesn't linger in memory
+
+        self.ctk_image = tk.CTkImage(light_image=pil_img, size=(500, 150)) # Wraps the image in a CTK image object
+        self.image_label = tk.CTkLabel(self, image=self.ctk_image, text="")  # display image with a CTkLabel
+        self.image_label.grid(row=0, column=0, padx=10, pady=10)
+
+
+
+        
+
 class AttendanceTab(tk.CTkFrame):
     def __init__(self, master, mainApp, **kwargs):
         super().__init__(master, **kwargs)
         self.mainApp = mainApp
+        self.master = master
 
         self.label = tk.CTkLabel(master=self, text="Attendance Tab")
         self.label.grid(row=0, column=0, padx=10, pady=10)
@@ -393,12 +428,20 @@ class AttendanceTab(tk.CTkFrame):
         self.allTeamPlayers = DatabaseManager.getPlayersInTeam(mainApp.user.teamID)
         self.playerDropdown = tk.CTkOptionMenu(self, values=self.allTeamPlayers, command=self.RefreshAttendanceGraph)
         self.playerDropdown.grid(row=1, column=0, padx=10, pady=10)
+        self.yearDropdown = tk.CTkOptionMenu(self, values=['2025', '2024', '2023'], command=self.RefreshAttendanceGraph)
+        self.yearDropdown.grid(row=2, column=0, padx=10, pady=10)
+
+        self.attendanceGraph = None
+
+        self.RefreshAttendanceGraph(self.playerDropdown.get())
 
     def RefreshAttendanceGraph(self, choice):
-        print("Refreshing Attendance Graph for", choice)
+        print("Refreshing Attendance Graph for", self.playerDropdown.get(), "in", self.yearDropdown.get())
         # Retrieve attendance data for the selected player
-        attendanceData = DatabaseManager.getPlayerAttendance(choice)
-        print(attendanceData)
+        if self.attendanceGraph:
+            self.attendanceGraph.destroy()
+        self.attendanceGraph = AttendanceGraph(self, player=self.playerDropdown.get(), year=self.yearDropdown.get(), mainApp=self.mainApp)
+        self.attendanceGraph.grid(row=3, column=0)
         # Update the graph accordingly
 
     def CreateAttendanceGraph(self):

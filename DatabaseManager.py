@@ -136,10 +136,23 @@ def getPlayersInTeam(teamID):
         return [player[0] for player in players] # Returns players in the specified position
     else:
         return [] # Returns empty list if no players in team
+    
+def getPlayerAcceptances(username, month, year):
+    cursor.execute(
+        f"""
+            SELECT date FROM rsvp INNER JOIN Fixture ON rsvp.sessionID = Fixture.fixtureID
+            WHERE rsvp.username = '{username}' AND rsvp.response = 'Accepted' AND Fixture.date LIKE '{year}-{month:02d}-%'
+        """
+    )
+    data = cursor.fetchall()
+    if data:
+        return [date[0] for date in data]
+    else:
+        return []
+
+# print(getPlayerAcceptances("Player1", 8, 2025))
 
 # print(getPlayersInTeam("ENG001"))
-
-    
 def submitRSVP(username, fixtureID, position):
     cursor.execute(f"""
         SELECT COUNT(*) FROM rsvp WHERE username = '{username}' AND sessionID = '{fixtureID}' AND response='Requested'
