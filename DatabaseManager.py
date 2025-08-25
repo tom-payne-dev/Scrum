@@ -1,7 +1,7 @@
 import sqlite3
 import bcrypt
 
-database = sqlite3.connect("usersdb.db") # Connects to the database
+database = sqlite3.connect("testdb.db") # Connects to the database
 cursor = database.cursor() # Opens a read/write cursor
 
 def AddUser(email, username, password, teamID, role, position):

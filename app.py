@@ -380,8 +380,9 @@ class TeamSheetWindow(tk.CTkToplevel):
         print("Submitting Team Sheet...")
         for playerField in self.playerFieldFrame.playerFields:
             DatabaseManager.submitRSVP(User(playerField.selectPlayerField.get()).username, self.fixtureID, playerField.position)
-            playerField.updatePlayerResponse(playerField.selectPlayerField.get()) # Updates the player response label
             #print(User(playerField.selectPlayerField.get()).username)
+        for playerField in self.playerFieldFrame.playerFields:
+            playerField.updatePlayerResponse(playerField.selectPlayerField.get()) # Updates the player response label
 
 class AttendanceGraph(tk.CTkFrame):
     def __init__(self, master, mainApp, player, year, **kwargs):
