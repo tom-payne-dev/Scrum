@@ -126,6 +126,18 @@ def getPlayerInPosition(position, fixtureID):
         return player[0]
     else:
         return None
+    
+def getPlayersInTeam(teamID):
+    cursor.execute(f"""
+        SELECT username FROM Users WHERE teamID = "{teamID}" AND role="Player"
+    """)
+    players = cursor.fetchall()
+    if players:
+        return [player[0] for player in players] # Returns players in the specified position
+    else:
+        return [] # Returns empty list if no players in team
+
+# print(getPlayersInTeam("ENG001"))
 
     
 def submitRSVP(username, fixtureID, position):
@@ -221,6 +233,8 @@ def retrieveRSVPStatus(username, fixtureID):
         return returnString
     else: # Otherwise
         return "None Sent" # Return that no request has been sent
+    
+
 
 # print(retrieveRSVPStatus("Player20", "11"))
 # print(retrieveRSVPStatus("Player2", "11"))

@@ -3,6 +3,8 @@ from CTkDatePicker import CTkDatePicker
 import DatabaseManager
 import datetime
 import math
+import matplotlib.pyplot as plt
+import numpy as np
 
 class User:
     def __init__(self, username):
@@ -380,6 +382,30 @@ class TeamSheetWindow(tk.CTkToplevel):
             playerField.updatePlayerResponse(playerField.selectPlayerField.get()) # Updates the player response label
             #print(User(playerField.selectPlayerField.get()).username)
 
+class AttendanceTab(tk.CTkFrame):
+    def __init__(self, master, mainApp, **kwargs):
+        super().__init__(master, **kwargs)
+        self.mainApp = mainApp
+
+        self.label = tk.CTkLabel(master=self, text="Attendance Tab")
+        self.label.grid(row=0, column=0, padx=10, pady=10)
+
+        self.allTeamPlayers = DatabaseManager.getPlayersInTeam(mainApp.user.teamID)
+        self.playerDropdown = tk.CTkOptionMenu(self, values=self.allTeamPlayers, command=self.RefreshAttendanceGraph)
+        self.playerDropdown.grid(row=1, column=0, padx=10, pady=10)
+
+    def RefreshAttendanceGraph(self, choice):
+        print("Refreshing Attendance Graph for", choice)
+        # Retrieve attendance data for the selected player
+        attendanceData = DatabaseManager.getPlayerAttendance(choice)
+        print(attendanceData)
+        # Update the graph accordingly
+
+    def CreateAttendanceGraph(self):
+        print("Creating Attendance Graph...")
+        # Create the initial attendance graph here
+
+
         
 
 class MainTabView(tk.CTkTabview):
@@ -408,6 +434,9 @@ class MainTabView(tk.CTkTabview):
         if user.role == "Coach": # Only show "New Fixture" button if the account loaded is a coach account
             self.button = tk.CTkButton(master=self.tab("Fixtures"), text="New Fixture", command=master.OpenFixtureCreator)
             self.button.grid(row=1, column=0, padx=10, pady=10)
+            self.add("Attendance") # Adds Attendance tab
+            self.attendanceTab = AttendanceTab(master=self.tab("Attendance"), mainApp=self.mainApp)
+            self.attendanceTab.grid(row=0, column=0, padx=10, pady=10)
 
 
 class App(tk.CTk): # inherits the CTk class
@@ -443,7 +472,7 @@ class App(tk.CTk): # inherits the CTk class
     
 
 
-session = App("Player2")
+session = App("Player16")
 session.mainloop()
 session = App("Coach1")
 session.mainloop()
